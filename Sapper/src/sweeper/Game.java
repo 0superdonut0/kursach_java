@@ -1,12 +1,30 @@
 package sweeper;
 
+import javax.swing.*;
+import javax.swing.border.Border;
+import javax.swing.table.DefaultTableModel;
+
+import java.awt.*;
+import java.awt.Container;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.TimeZone;
+
+import static sweeper.Box.*;
+
 public class Game { // движок игры
 
+    private JFrame frame;
     private Bomb bomb; // объявляем переменную бомб
     private Flag flag; // объявляем переменную флагов
     private GameState state; // объявляем переменную состояния игры
     private int bombsRemain; // ??объявляем переменную количества оставшихся бомб
     private long mSeconds; // ??здесь буду хранить секунды
+    private Object[][] data = new Object[99][3];
+    private int rows = 0;
+    private int col = 0;
+    private JTable jt = null;
 
     public GameState getState() { // геттер состояния игры
         return state; // возвращает состояние
@@ -23,27 +41,52 @@ public class Game { // движок игры
         flag.start(); // флаги тоже проинициализируем
         state = GameState.PLAYED; // состояние игры - играем
         mSeconds = System.currentTimeMillis(); // запускаем таймер
+
+    }
+    public void initTable() {
+        frame = new JFrame("Статистика");
+        if (jt != null){
+            frame.setVisible(false);
+        }
+        else {
+            frame.setVisible(true);
+        }
+        String column[]={"Время игры(c)","Время","Результат"};
+        frame.setBounds(30,40,300,300);
+        jt=new JTable(data,column);
+        jt.setDefaultEditor(Object.class, null);
+        JScrollPane sp=new JScrollPane(jt);
+        frame.getContentPane().add(sp);
+
+    }
+    public void initData(){
+        SimpleDateFormat dt = new SimpleDateFormat("HH:mm:ss");
+        Date date = new Date();
+        data[rows][col] = mSeconds;
+        data[rows][++col] = dt.format(date);
+        data[rows][++col] = state;
+        rows++;
+        col = 0;
     }
 
     public Box getBox(Coord coord) {// метод, который будет говорить, что изобразить в том или ином месте нашего
-        // экрана
+// экрана
         if (flag.get(coord) == Box.OPENED) // делаем проверку: если во флаге находится ОПЕНЕД
             return bomb.get(coord); // тогда возвращаем значение из матрицы бомб
         else
             return flag.get(coord); // а если нет, тогда получаем получаем координату из класса флагов
     }
-
     public void pressLeftButton(Coord coord) { // метод для обработки клика левой кнопкой мыши
-        if (gameOver())
+        if (gameOver()){
             return; // если игра закончена - ничего не делаем
+        }
         openBox(coord); // специальный сложный метод
         checkWinner(); // проверяем, не выиграли ли мы
     }
-
     private void checkWinner() { // метод для проверки на победу
         if (state == GameState.PLAYED) { // проверяем, не проиграли ли мы))
             if (flag.getCountOfClosedBoxes() == bomb.getTotalBombs()) { // если количество закрытых клеток равно
-                // количеству бомб
+// количеству бомб
                 for (Coord coord : Ranges.getAllCoords()) { // перебираем все координаты
                     if (bomb.get(coord) == Box.BOMB) { // если в указанной координате бомба
                         flag.setFlagedToOpenedBombBox(coord); // меняем флажки на бомбочки
@@ -51,6 +94,7 @@ public class Game { // движок игры
                 } // открываем клетку на закрытой клетке с бомбой
                 mSeconds = (System.currentTimeMillis() - mSeconds) / 1000;
                 state = GameState.WINNER; // то мы победили
+                initData();
             }
         }
     }
@@ -69,10 +113,12 @@ public class Game { // движок игры
                         return; // если открыто, то специальным методом рекурсивно открываем клетки вокруг
                     case BOMB:
                         openBombs(coord);
+                        initData();
                         return; // если бомба, то вызываем метод открытия бомб
                     default:
                         flag.setOpenedToBox(coord);
-                        return; // устанавливаем значение ячейки как открытой по координатам;
+                        return; // устанавливаем значение ячейки как
+                    //открытой по координатам;
                 }
         }
     }
@@ -104,6 +150,7 @@ public class Game { // движок игры
         flag.setOpenedToBox(coord); // открываем текущую клетку
         for (Coord around : Ranges.getCoordsAround(coord)) { // перебираем все клетки вокруг
             openBox(around);
+
         }
     }
 
@@ -117,7 +164,9 @@ public class Game { // движок игры
         if (state == GameState.PLAYED) { // если состояние игры - играем
             return false; // то ложно
         }
-        return true; // иначе - правда
+        else {
+            return true; // иначе - правда
+        }
     }
 
     public int getCountOfFlags() { // ??геттер для количества флагов
